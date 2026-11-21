@@ -1,0 +1,216 @@
+<!DOCTYPE html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <link rel="icon" href="./img/flowers.png" type="image/x-icon" />
+    <title>White Rose Bouquet</title>
+    <style>
+      * { margin: 0; padding: 0; box-sizing: border-box; }
+      body {
+        min-height: 100vh;
+        display: flex;
+        align-items: center;
+        justify-content: center;
+        overflow: hidden;
+        background: radial-gradient(ellipse at 50% 40%, #b8486e 0%, #932f52 55%, #6b1a36 100%);
+      }
+      svg { height: 94vh; max-width: 100vw; overflow: visible; }
+
+      .stem { stroke-dasharray: 1; stroke-dashoffset: 1; animation: draw 1.4s ease-out forwards; }
+      .bow { opacity: 0; transform-box: fill-box; transform-origin: center; animation: pop 0.8s 1.2s cubic-bezier(.2,.9,.3,1.3) forwards; }
+      .leaf { opacity: 0; transform: scale(.3); animation: grow 1.2s cubic-bezier(.22,1,.36,1) forwards; }
+      .breath { opacity: 0; animation: fade 1s ease-out forwards; }
+      .rose { opacity: 0; transform: scale(.35) rotate(-25deg); animation: bloom 2.2s cubic-bezier(.22,1,.36,1) 2.4s forwards; }
+      .layer { transform: rotate(-20deg) scale(.6); animation: unfurl 2.4s cubic-bezier(.22,1,.36,1) forwards; }
+      .sway { transform-origin: 300px 520px; animation: sway 7s ease-in-out 5s infinite; }
+      .spark { animation: rise linear infinite; opacity: 0; }
+
+      @keyframes draw { to { stroke-dashoffset: 0; } }
+      @keyframes pop { from { opacity: 0; transform: scale(.3); } to { opacity: 1; transform: scale(1); } }
+      @keyframes grow { to { opacity: 1; transform: scale(1); } }
+      @keyframes fade { to { opacity: 1; } }
+      @keyframes bloom { to { opacity: 1; transform: scale(1) rotate(0deg); } }
+      @keyframes unfurl { to { transform: rotate(0deg) scale(1); } }
+      @keyframes sway { 0%, 100% { transform: rotate(0deg); } 50% { transform: rotate(1.2deg); } }
+      @keyframes rise {
+        0% { opacity: 0; transform: translateY(0); }
+        15% { opacity: .9; }
+        100% { opacity: 0; transform: translateY(-140px); }
+      }
+
+      @media (prefers-reduced-motion: reduce) {
+        .stem, .bow, .leaf, .breath, .rose, .layer, .sway, .spark { animation: none !important; }
+        .stem { stroke-dashoffset: 0; }
+        .bow, .breath, .leaf, .rose { opacity: 1; }
+        .leaf, .rose, .layer { transform: none; }
+      }
+    </style>
+  </head>
+  <body>
+    <svg id="art" viewBox="0 0 600 800" aria-label="Animated bouquet of white roses">
+      <defs>
+        <linearGradient id="petal" x1="0.5" y1="1" x2="0.5" y2="0">
+          <stop offset="0" stop-color="#d6cbc1" />
+          <stop offset="0.55" stop-color="#f6f1eb" />
+          <stop offset="1" stop-color="#fffdfa" />
+        </linearGradient>
+        <linearGradient id="petalInner" x1="0.5" y1="1" x2="0.5" y2="0">
+          <stop offset="0" stop-color="#c9bbaf" />
+          <stop offset="0.6" stop-color="#efe7df" />
+          <stop offset="1" stop-color="#fffaf5" />
+        </linearGradient>
+        <linearGradient id="leaf" x1="0" y1="1" x2="0" y2="0">
+          <stop offset="0" stop-color="#2f7d3c" />
+          <stop offset="1" stop-color="#72c27a" />
+        </linearGradient>
+        <radialGradient id="roseShadow">
+          <stop offset="0.6" stop-color="#4a0f24" stop-opacity="0.35" />
+          <stop offset="1" stop-color="#4a0f24" stop-opacity="0" />
+        </radialGradient>
+      </defs>
+      <g id="sparks"></g>
+      <g class="sway">
+        <g id="stems"></g>
+        <g id="leaves"></g>
+        <g id="breaths"></g>
+        <g id="roses"></g>
+        <g id="bow" class="bow"></g>
+      </g>
+    </svg>
+
+    <script>
+      const NS = "http://www.w3.org/2000/svg";
+      const el = (tag, attrs, parent) => {
+        const n = document.createElementNS(NS, tag);
+        for (const k in attrs) n.setAttribute(k, attrs[k]);
+        if (parent) parent.appendChild(n);
+        return n;
+      };
+      // seeded random so the bouquet looks the same on every load
+      let seed = 7;
+      const rand = (a = 0, b = 1) => {
+        seed = (seed * 16807) % 2147483647;
+        return a + ((seed - 1) / 2147483646) * (b - a);
+      };
+
+      const TIE = { x: 300, y: 520 };
+
+      // stems: up from the tie into the bouquet, and down to the cut ends
+      const stems = document.getElementById("stems");
+      for (let i = 0; i < 18; i++) {
+        const o = i - 8.5;
+        const color = i % 2 ? "#5aa964" : "#74c07a";
+        const common = { fill: "none", stroke: color, "stroke-width": 3.4, "stroke-linecap": "round", pathLength: 1, class: "stem" };
+        el("path", { ...common, d: `M${TIE.x + o * 1.4},${TIE.y} Q${TIE.x + o * 6},${TIE.y - 60} ${TIE.x + o * 15},${TIE.y - 150}` }, stems);
+        el("path", { ...common, d: `M${TIE.x + o * 1.4},${TIE.y} L${TIE.x + o * 4.6},${760 + rand(-6, 6)}` }, stems);
+      }
+
+      // leaves fanned out behind the roses
+      const leaves = document.getElementById("leaves");
+      const leafPath = (L, w) =>
+        `M0,0 C${-w},${-L * 0.25} ${-w * 0.8},${-L * 0.8} 0,${-L} C${w * 0.8},${-L * 0.8} ${w},${-L * 0.25} 0,0Z`;
+      for (let i = 0; i < 30; i++) {
+        const a = -195 + (i / 29) * 210 + rand(-5, 5); // degrees, around the top and sides
+        const rad = (a * Math.PI) / 180;
+        const R = 150 + rand(0, 20);
+        const x = 300 + Math.cos(rad) * R;
+        const y = 300 + Math.sin(rad) * R * 0.95;
+        const g = el("g", { transform: `translate(${x},${y}) rotate(${a + 90 + rand(-12, 12)})` }, leaves);
+        const L = rand(38, 54);
+        const inner = el("g", { class: "leaf", style: `animation-delay:${1.4 + i * 0.03}s` }, g);
+        el("path", { d: leafPath(L, L * 0.32), fill: "url(#leaf)", stroke: "#2a6b34", "stroke-width": 0.8 }, inner);
+        el("path", { d: `M0,-2 L0,${-L * 0.9}`, stroke: "#bfe8c2", "stroke-width": 0.9, opacity: 0.7 }, inner);
+      }
+
+      // baby's breath sprays between the leaves
+      const breaths = document.getElementById("breaths");
+      for (let i = 0; i < 16; i++) {
+        const a = (-185 + (i / 15) * 190) * (Math.PI / 180);
+        const R = 165 + rand(-8, 12);
+        const cx = 300 + Math.cos(a) * R;
+        const cy = 300 + Math.sin(a) * R * 0.95;
+        const g = el("g", { class: "breath", style: `animation-delay:${2.2 + rand(0, 0.8)}s` }, breaths);
+        for (let k = 0; k < 7; k++) {
+          const dx = rand(-14, 14), dy = rand(-14, 14);
+          el("line", { x1: cx - dx * 0.2, y1: cy - dy * 0.2 + 6, x2: cx + dx, y2: cy + dy, stroke: "#8fca8f", "stroke-width": 0.7 }, g);
+          el("circle", { cx: cx + dx, cy: cy + dy, r: rand(2, 3.4), fill: "#fffaf6" }, g);
+        }
+      }
+
+      // white roses, back (top) to front (bottom)
+      const petalPath = (L, w) =>
+        `M0,0 C${-0.9 * w},${-0.15 * L} ${-1.15 * w},${-0.8 * L} ${-0.55 * w},${-0.98 * L} ` +
+        `Q0,${-1.08 * L} ${0.55 * w},${-0.98 * L} C${1.15 * w},${-0.8 * L} ${0.9 * w},${-0.15 * L} 0,0Z`;
+
+      const roses = document.getElementById("roses");
+      const spots = [
+        [300, 165, 40], [235, 185, 42], [365, 185, 42], [180, 235, 40], [420, 235, 40],
+        [270, 235, 52], [335, 240, 50], [150, 310, 40], [450, 310, 40], [215, 300, 52],
+        [385, 300, 52], [300, 305, 56], [190, 375, 44], [410, 375, 44], [250, 370, 50],
+        [350, 370, 50], [300, 425, 46], [235, 430, 38], [365, 430, 38],
+      ].sort((p, q) => p[1] - q[1]);
+
+      // every rose shares the same timing so they bloom in sync
+      const delay = 2.4;
+      spots.forEach(([x, y, r]) => {
+        const pos = el("g", { transform: `translate(${x},${y + 4})` }, roses);
+        const rose = el("g", { class: "rose" }, pos);
+        el("circle", { r: r * 1.15, fill: "url(#roseShadow)" }, rose);
+        const head = el("g", { transform: `translate(0,-4) rotate(${rand(0, 360)})` }, rose);
+        const layers = [
+          { n: 5, L: 1.0, fill: "url(#petal)" },
+          { n: 5, L: 0.8, fill: "url(#petal)" },
+          { n: 4, L: 0.6, fill: "url(#petalInner)" },
+          { n: 3, L: 0.42, fill: "url(#petalInner)" },
+          { n: 3, L: 0.26, fill: "url(#petalInner)" },
+        ];
+        layers.forEach((ly, k) => {
+          const layer = el("g", { class: "layer", style: `animation-delay:${delay + k * 0.12}s` }, head);
+          const off = k * 23 + rand(0, 20);
+          for (let p = 0; p < ly.n; p++) {
+            const L = r * ly.L;
+            el("path", {
+              d: petalPath(L, L * 0.62),
+              transform: `rotate(${off + (360 / ly.n) * p})`,
+              fill: ly.fill,
+              stroke: "rgba(120, 90, 85, 0.22)",
+              "stroke-width": 0.8,
+            }, layer);
+          }
+        });
+        // curled bud in the middle
+        el("circle", { r: r * 0.14, fill: "#e8ddd2" }, head);
+        let d = "";
+        for (let t = 0; t <= 3.2 * Math.PI; t += 0.25) {
+          const rr = r * (0.02 + 0.045 * t / Math.PI);
+          d += `${t ? "L" : "M"}${Math.cos(t) * rr},${Math.sin(t) * rr} `;
+        }
+        el("path", { d, fill: "none", stroke: "rgba(140, 105, 95, 0.5)", "stroke-width": 1.1, "stroke-linecap": "round" }, head);
+      });
+
+      // cream ribbon bow at the tie
+      const bow = document.getElementById("bow");
+      const ribbon = { fill: "#f4e8d6", stroke: "#d3bf9f", "stroke-width": 1.2, "stroke-linejoin": "round" };
+      el("rect", { x: 278, y: 512, width: 44, height: 16, rx: 5, ...ribbon }, bow);
+      el("path", { d: "M300,520 C262,488 236,500 246,528 C256,552 286,538 300,520Z", ...ribbon }, bow);
+      el("path", { d: "M300,520 C338,488 364,500 354,528 C344,552 314,538 300,520Z", ...ribbon }, bow);
+      el("path", { d: "M294,526 L272,598 L286,592 L300,530Z", ...ribbon }, bow);
+      el("path", { d: "M306,526 L328,598 L314,592 L300,530Z", ...ribbon }, bow);
+      el("rect", { x: 291, y: 511, width: 18, height: 19, rx: 6, ...ribbon, fill: "#fbf3e7" }, bow);
+
+      // sparkles drifting up around the bouquet
+      const sparks = document.getElementById("sparks");
+      for (let i = 0; i < 40; i++) {
+        el("circle", {
+          cx: rand(130, 470),
+          cy: rand(380, 720),
+          r: rand(1, 2.6),
+          fill: "#ffe9f0",
+          class: "spark",
+          style: `animation-duration:${rand(4, 8)}s;animation-delay:${rand(2, 10)}s`,
+        }, sparks);
+      }
+    </script>
+  </body>
+</html>
